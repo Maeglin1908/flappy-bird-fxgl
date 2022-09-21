@@ -1,7 +1,6 @@
 package com.nilgam;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import com.almasb.fxgl.app.GameApplication;
@@ -40,15 +39,14 @@ public class App extends GameApplication {
     @Override
     protected void initGame() {
         FXGL.getGameWorld().addEntityFactory(new GameEntityFactory());
-
         player = FXGL.spawn("player", FXGL.getAppWidth() / 2, FXGL.getAppHeight() / 2);
 
         for (int i = 0; i < 4; i++) {
-
-            ((List<Entity>) FXGL.getWorldProperties().getObject("blocks"))
-                    .add(FXGL.spawn("brick", FXGL.random(0, FXGL.getAppWidth()), FXGL.random(0, FXGL.getAppHeight())));
+            FXGL.spawn("brick", FXGL.random(0, FXGL.getAppWidth()), FXGL.random(0, FXGL.getAppHeight()));
         }
 
+        // FXGL.getGameScene().getViewport().bindToEntity(player, FXGL.getAppWidth() / 2, FXGL.getAppHeight() / 2);
+        // FXGL.getGameScene().getViewport().setBounds(-400, -400, 2000, 2000);
     }
 
     @Override

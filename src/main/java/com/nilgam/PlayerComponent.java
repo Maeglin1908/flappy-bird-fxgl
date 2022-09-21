@@ -41,13 +41,8 @@ public class PlayerComponent extends Component {
         }
     }
 
-    public void movePreviousPosition() {
-
-        entity.setPosition(previousPosition.getX(), previousPosition.getY());
-    }
-
-    public boolean isCollidingWithBlocks() {
-        List<Entity> entities = FXGL.getWorldProperties().getObject("blocks");
+    private boolean isCollidingWithBlocks() {
+        List<Entity> entities = FXGL.getGameWorld().getEntitiesByType(EntityType.BRICK); // , EntityType.COIN);
         for (Entity ent : entities) {
             if (entity.isColliding(ent)) {
                 return true;
