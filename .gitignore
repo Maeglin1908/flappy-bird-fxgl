@@ -16,6 +16,7 @@ buildNumber.properties
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
+.idea
 # FXGL Part
 logs
 system
