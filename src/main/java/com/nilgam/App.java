@@ -1,24 +1,28 @@
 package com.nilgam;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
-import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.physics.CollisionHandler;
 
-import javafx.geometry.Point2D;
+import static com.almasb.fxgl.dsl.FXGL.*;
+
+import com.almasb.fxgl.entity.Entity;
+import com.almasb.fxgl.input.UserAction;
+import com.almasb.fxgl.physics.CollisionHandler;
+import com.almasb.fxgl.time.TimerAction;
+import com.nilgam.components.BirdComponent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
+
+import java.util.Map;
 
 /**
  * Hello world!
- *
  */
 public class App extends GameApplication {
+    TimerAction spawnPipes;
+    private Entity bird;
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -27,86 +31,104 @@ public class App extends GameApplication {
     protected void initSettings(GameSettings settings) {
         settings.setWidth(800);
         settings.setHeight(600);
-        settings.setTitle("Basic Game App");
+        settings.setTitle("Flappy Bird - FXGL Version");
         settings.setVersion("0.1");
-        // settings.setFullScreenFromStart(true);
         settings.setPreserveResizeRatio(true);
-    }
 
-    private Entity player;
-    private Point2D playerPreviousPosition;
-    // private Entity brick;
+    }
 
     @Override
     protected void initGame() {
-        FXGL.getGameWorld().addEntityFactory(new GameEntityFactory());
+        getGameWorld().addEntityFactory(new GameEntityFactory());
+        bird = spawn("bird");
+        spawnPipes = getGameTimer().runAtInterval(() -> {
+            spawn("pipeTop");
+            spawn("pipeBottom");
+        }, Duration.seconds(2));
 
-        player = FXGL.spawn("player", FXGL.getAppWidth() / 2, FXGL.getAppHeight() / 2);
-
-        for (int i = 0; i < 4; i++) {
-
-            ((List<Entity>) FXGL.getWorldProperties().getObject("blocks"))
-                    .add(FXGL.spawn("brick", FXGL.random(0, FXGL.getAppWidth()), FXGL.random(0, FXGL.getAppHeight())));
-        }
 
     }
 
     @Override
     protected void initInput() {
-        FXGL.onKey(KeyCode.E, "Move right", () -> {
-            player.getComponent(PlayerComponent.class).moveRight();
-        });
+        getInput().addAction(new UserAction("Jump") {
+            @Override
+            protected void onActionBegin() {
+                bird.getComponent(BirdComponent.class).jump();
+            }
+        }, KeyCode.SPACE);
+        getInput().addAction(new UserAction("Skip") {
+            @Override
+            protected void onAction() {
+                getGameScene().step(0.1);
+            }
+        }, KeyCode.E);
 
-        FXGL.onKey(KeyCode.U, "Move left", () -> {
-            player.getComponent(PlayerComponent.class).moveLeft();
-        });
 
-        FXGL.onKey(KeyCode.P, "Move up", () -> {
-            player.getComponent(PlayerComponent.class).moveUp();
-        });
-
-        FXGL.onKey(KeyCode.I, "Move dowm", () -> {
-            player.getComponent(PlayerComponent.class).moveDown();
-        });
     }
 
     @Override
     protected void initGameVars(Map<String, Object> vars) {
-        vars.put("pixelsMoved", 0);
-        vars.put("blocks", new ArrayList<Entity>());
+        vars.put("birdOffset", 30.0);
+        vars.put("birdWidth", 30.0);
+        vars.put("birdHeight", 30.0);
+
+        vars.put("pipeSpeed", 220.0);
+        vars.put("pipeSpace", 120.0);
+        vars.put("pipeWidth", 80.0);
+
+        vars.put("score", 0.0);
+        vars.put("pipesDone", 0.0);
+
+        vars.put("gravity", 13.0);
+        vars.put("lift", 6);
     }
 
     @Override
     protected void initUI() {
-        Text textPixels = new Text();
-        textPixels.setTranslateX(50); // x = 50
-        textPixels.setTranslateY(100); // y = 100
-        textPixels.textProperty().bind(FXGL.getWorldProperties().intProperty("pixelsMoved").asString());
+        Text textScore = new Text();
+        textScore.setTranslateX(50);
+        textScore.setTranslateY(100);
+        textScore.textProperty().bind(
+                getdp("score").asString()
+        );
 
-        Text textPlayerX = new Text();
-        textPlayerX.setTranslateX(50);
-        textPlayerX.setTranslateY(120);
-        textPlayerX.textProperty().bind(player.xProperty().asString());
+        Text textPipes = new Text();
+        textPipes.setTranslateX(50);
+        textPipes.setTranslateY(120);
+        textPipes.textProperty().bind(
+                getdp("pipesDone").asString()
+        );
 
-        Text textPlayerY = new Text();
-        textPlayerY.setTranslateX(50);
-        textPlayerY.setTranslateY(140);
-        textPlayerY.textProperty().bind(player.yProperty().asString());
-
-        FXGL.getGameScene().addUINode(textPixels); // add to the scene graph
-        FXGL.getGameScene().addUINode(textPlayerX);
-        FXGL.getGameScene().addUINode(textPlayerY);
+        addUINode(textScore);
+        addUINode(textPipes);
     }
 
     @Override
     protected void initPhysics() {
-        FXGL.getPhysicsWorld().addCollisionHandler(new CollisionHandler(EntityType.PLAYER, EntityType.BRICK) {
-            @Override
-            protected void onCollisionBegin(Entity player, Entity brick) {
-                // System.out.println("COLLIDE");
-            }
+        getPhysicsWorld()
+                .addCollisionHandler(
+                        new CollisionHandler(EntityType.BIRD, EntityType.PIPE) {
+                            @Override
+                            protected void onCollisionBegin(Entity bird, Entity brick) {
+                                bird.removeFromWorld();
+                                gameOver();
+                            }
+                        });
+    }
 
-        });
+    @Override
+    protected void onUpdate(double tpf) {
+        if (!bird.isVisible()) {
+            bird.removeFromWorld();
+            gameOver();
+        }
+    }
+
+    public void gameOver() {
+        spawnPipes.expire();
+        showMessage("YOU LOSE !!!!",
+                () -> getGameController().startNewGame());
     }
 
 }

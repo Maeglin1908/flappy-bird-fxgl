@@ -1,35 +1,69 @@
 package com.nilgam;
 
-import com.almasb.fxgl.dsl.FXGL;
+import java.util.List;
+
+import static com.almasb.fxgl.dsl.FXGL.*;
+
+import com.almasb.fxgl.dsl.components.OffscreenCleanComponent;
+import com.almasb.fxgl.dsl.components.OffscreenInvisibleComponent;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.EntityFactory;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.physics.PhysicsComponent;
+import com.nilgam.components.BirdComponent;
+import com.nilgam.components.PipeComponent;
 
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 
 public class GameEntityFactory implements EntityFactory {
 
-    @Spawns("player")
-    public Entity newPlayer(SpawnData data) {
-        return FXGL.entityBuilder(data)
-                .type(EntityType.PLAYER)
-                // .at(300, 300)
-                .viewWithBBox(new Rectangle(25, 25, Color.BLUE))
-                .with(new PlayerComponent())
+    @Spawns("bird")
+    public Entity newBird(SpawnData data) {
+        return entityBuilder(data)
+                .type(EntityType.BIRD)
+                .at(getWorldProperties().getDouble("birdOffset"), (getAppHeight() / 2.0))
+                .viewWithBBox(new Rectangle(
+                        getWorldProperties().getDouble("birdWidth"),
+                        getWorldProperties().getDouble("birdHeight"),
+                        Color.BLUE))
+                .with(new BirdComponent())
+                .with(new OffscreenInvisibleComponent())
                 .collidable()
                 .build();
     }
 
-    @Spawns("brick")
+    @Spawns("pipeTop")
+    public Entity newPipeTop(SpawnData data) {
+        return entityBuilder(data)
+                .type(EntityType.PIPE)
+                .at(getAppWidth(), 0.0)
+                .viewWithBBox(new Rectangle(
+                        getWorldProperties().getDouble("pipeWidth"),
+                        random(0,
+                                getAppHeight() - getWorldProperties().getDouble("pipeSpace"))
+
+                ))
+                .with(new PipeComponent())
+                .with(new OffscreenCleanComponent())
+                .collidable()
+                .build();
+    }
+
+    @Spawns("pipeBottom")
     public Entity newBrick(SpawnData data) {
-        return FXGL.entityBuilder(data)
-                .type(EntityType.BRICK)
-                // .viewWithBBox(new Circle(15, 15, 15, Color.YELLOW))
-                .viewWithBBox("brick.png")
-                .with(new PhysicsComponent())
+        List<Entity> pipes = getGameWorld().getEntitiesByType(EntityType.PIPE);
+        Entity lastPipe = pipes.get(pipes.size() - 1);
+        double pipeY = lastPipe.getHeight() + getWorldProperties().getDouble("pipeSpace");
+
+        return entityBuilder(data)
+                .type(EntityType.PIPE)
+                .at(getAppWidth(), pipeY)
+                .viewWithBBox(new Rectangle(
+                        getWorldProperties().getDouble("pipeWidth"),
+                        getAppHeight() - pipeY))
+                .with(new PipeComponent())
+                .with(new OffscreenCleanComponent())
                 .collidable()
                 .build();
     }
